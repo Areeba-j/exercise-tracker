@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        #status {
+            background-color:#f9f9b6;
+            width:300px;
+            height:300px;
+            text-align: center;
+            margin: auto;
+            padding: 50px;
+            box-shadow: rgba(255, 196, 1, 0.4) 0px 0px 0px 2px, rgba(6, 24, 44, 0.65) 0px 4px 6px -1px, rgba(255, 255, 255, 0.08) 0px 1px 0px inset;
+        }
+        #msg {
+            font-size: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">
+        <h1 style="text-align: center;">Exercise Tracker</h1>
+        <img src="cartoon.jpg" style="width:60%;">
+        <h3 id="msg">Push-Ups Counter: 0</h3>
+    </div>
+
+    <script>
+
+        let counter = 0;
+        let upMessageProcessed = false; 
+        // Create a new MQTT client instance
+        client = new Paho.MQTT.Client("broker.hivemq.com", 8000, "exercise-client-001");
+
+        // Set callback handlers for connection and message arrivals
+        client.onMessageArrived = onMessageArrived;
+        client.onConnectionLost = onConnectionLost;
+
+        // Connect to the broker
+        client.connect({
+            onSuccess: onConnect
+        });
+
+        // Called when the client connects
+        function onConnect() {
+            console.log("Connected to MQTT broker");
+            client.subscribe("estatus");
+        }
+
+        // Called when a message arrives
+        function onMessageArrived(message) {
+            console.log("Message Arrived: " + message.payloadString); 
+            console.log("onMessageArrived:" + message.destinationName);
+
+            // Logic to count push-ups
+            if (message.payloadString === "pushdown") {
+                upMessageProcessed = false; // Reset the flag when the message is "down"
+            } else if (message.payloadString === "pushup" && !upMessageProcessed) {
+                // Increment the counter only once when the message is "up"
+                counter++;
+                document.getElementById("msg").innerHTML = "Push-Ups Counter: " + counter;
+                upMessageProcessed = true; // Set the flag to true after incrementing the counter
+            }
+        }
+
+        // Called when the connection is lost
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("Connection Lost: " + responseObject.errorMessage);
+            }
+        }
+    </script>
+</body>
+</html>
